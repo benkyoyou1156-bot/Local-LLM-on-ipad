@@ -85,8 +85,12 @@ function setupLocal(files) {
   };
 }
 async function load(model, device, dtype) {
-  gen = await pipeline("text-generation", model, {device, dtype, progress_callback: progress});
-  // ウォームアップ(シェーダーコンパイル)
+  postMessage({type:"stage", text:"ダウンロード/読み込み中(" + device + ")"});
+  gen = await pipeline("text-generation", model, {device, dtype, progress_callback: p => {
+    progress(p);
+    if (p.status === "done") postMessage({type:"stage", text:"ファイル読み込み済み。モデルを初期化中…(1〜2分かかることがあります)"});
+  }});
+  postMessage({type:"stage", text:"初期化完了。ウォームアップ中…"});
   await gen([{role:"user",content:"hi"}], {max_new_tokens:1});
 }
 onmessage = async ({data}) => {
@@ -169,7 +173,8 @@ $("#load").onclick = () => {
 $("#clear").onclick = () => { history.length = 0; $("#log").innerHTML = ""; };
 
 worker.onmessage = ({data:d}) => {
-  if (d.type === "progress") { $("#bar i").style.width = d.pct + "%"; setStatus(`ダウンロード中 ${d.mb.toFixed(0)}MB(${d.pct.toFixed(0)}%)`); }
+  if (d.type === "progress") { $("#bar i").style.width = d.pct + "%"; setStatus(d.pct >= 99.5 ? "ダウンロード完了。初期化中…(1〜2分かかることがあります)" : `ダウンロード中 ${d.mb.toFixed(0)}MB(${d.pct.toFixed(0)}%)`); }
+  else if (d.type === "stage") setStatus(d.text);
   else if (d.type === "fallback") setStatus("WebGPUで失敗したためCPU(WASM)に切り替えます…");
   else if (d.type === "ready") {
     $("#bar i").style.width = "100%";
@@ -183,6 +188,8 @@ worker.onmessage = ({data:d}) => {
     $("#load").disabled = sel.disabled = dsel.disabled = false; if (busy) finish();
   }
 };
+worker.onerror = e => { setStatus("Workerエラー: " + (e.message || "読み込み失敗(メモリ不足/ライブラリ取得失敗の可能性)")); $("#load").disabled = sel.disabled = dsel.disabled = false; };
+worker.onmessageerror = () => setStatus("Worker通信エラー");
 function finish() { busy = false; $("#send").textContent = "送信"; }
 
 $("#f").onsubmit = e => {
