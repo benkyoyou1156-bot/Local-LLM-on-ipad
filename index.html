@@ -52,14 +52,15 @@ textarea{flex:1;resize:none;height:44px}
 
 <script type="module">
 const MODELS = [
-  {id:"LiquidAI/LFM2.5-350M-ONNX", label:"LFM2.5 350M(軽量・iPad推奨)"},
-  {id:"LiquidAI/LFM2.5-1.2B-Instruct-ONNX", label:"LFM2.5 1.2B Instruct(高品質 約700MB・メモリ多め)"},
-  {id:"onnx-community/SmolLM2-360M-Instruct", label:"SmolLM2 360M(切り分け用・軽量)"},
-  {id:"onnx-community/Qwen2.5-0.5B-Instruct", label:"Qwen2.5 0.5B(比較用)"},
+  {id:"onnx-community/LFM2-350M-ONNX", label:"LFM2 350M(動作実績あり・推奨 約280MB)"},
+  {id:"onnx-community/LFM2-700M-ONNX", label:"LFM2 700M(高品質・メモリ多め)"},
+  {id:"LiquidAI/LFM2.5-350M-ONNX", mf:"model_q4f32", label:"LFM2.5 350M q4f32(実験・約460MB)"},
+  {id:"LiquidAI/LFM2.5-350M-ONNX", label:"LFM2.5 350M q4(実験・失敗する場合あり)"},
+  {id:"onnx-community/SmolLM2-360M-Instruct", label:"SmolLM2 360M(切り分け用)"},
 ];
 const $ = s => document.querySelector(s);
 const sel = $("#model");
-MODELS.forEach(m => sel.add(new Option(m.label, m.id)));
+MODELS.forEach(m => sel.add(new Option(m.label, m.id + (m.mf ? "|" + m.mf : ""))));
 
 // ---- Worker(推論をメインスレッドから分離) ----
 const workerSrc = `
@@ -104,10 +105,10 @@ function setupLocal(files) {
     async put() {}
   };
 }
-async function load(model, device, dtype) {
-  L("load model=" + model + " device=" + device + " dtype=" + dtype);
+async function load(model, device, dtype, mf) {
+  L("load model=" + model + " device=" + device + " dtype=" + dtype + (mf ? " file=" + mf : ""));
   postMessage({type:"stage", text:"ダウンロード/読み込み中(" + device + ")"});
-  gen = await pipeline("text-generation", model, {device, dtype, progress_callback: p => {
+  gen = await pipeline("text-generation", model, {device, dtype: mf ? "fp32" : dtype, ...(mf ? {model_file_name: mf} : {}), progress_callback: p => {
     progress(p); logP(p);
     if (p.status === "done") postMessage({type:"stage", text:"ファイル読み込み済み。モデルを初期化中…(1〜2分かかることがあります)"});
   }});
@@ -121,11 +122,11 @@ onmessage = async ({data}) => {
     if (data.type === "load") {
       let device = data.device, model = data.model;
       if (data.files) { setupLocal(data.files); model = "local/model"; }
-      try { await load(model, device, data.dtype); }
+      try { await load(model, device, data.dtype, data.mf); }
       catch (e) {
         if (device !== "webgpu") throw e;
         device = "wasm"; postMessage({type:"fallback"});
-        await load(model, device, data.dtype);
+        await load(model, device, data.dtype, data.mf);
       }
       postMessage({type:"ready", device});
     } else if (data.type === "generate") {
@@ -147,7 +148,7 @@ let nTok = 0, tg = 0;
 let hasGPU = false;
 try { hasGPU = !!navigator.gpu && !!(await navigator.gpu.requestAdapter()); } catch {}
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (!isIOS && hasGPU && (navigator.deviceMemory || 8) >= 8) sel.selectedIndex = 1; // 余裕のある端末のみ1.2B
+if (!isIOS && hasGPU && (navigator.deviceMemory || 8) >= 8) sel.selectedIndex = 1;
 const dbg = $("#dbg"), t0 = performance.now();
 function log(t, lv) {
   const d = document.createElement("div"); if (lv) d.className = lv;
@@ -185,7 +186,7 @@ function onPick(e) {
   const types = new Set();
   for (const {path} of localFiles) {
     const m = path.split("/").pop().match(/^model(?:_(.+))?\.onnx$/);
-    if (m) { const t = DT[m[1]] || m[1] || "fp32"; if (OK.includes(t)) types.add(t); }
+    if (m) { const t = DT[m[1]] || m[1] || "fp32"; types.add(t); }
   }
   const need = ["config.json", "tokenizer.json"].filter(n => !localFiles.some(x => x.path.split("/").pop() === n));
   if (!types.size) return setStatus("model*.onnx が見つかりません。onnxフォルダごと選んでください。");
@@ -207,12 +208,14 @@ $("#load").onclick = () => {
   loading = true; lastMsg = performance.now();
   const ts = performance.now(); clearInterval(hb);
   hb = setInterval(() => log(`…経過 ${((performance.now() - ts) / 1000) | 0}秒(Worker最終応答 ${((performance.now() - lastMsg) / 1000) | 0}秒前)`, "t"), 5000);
-  log("読み込み開始: " + sel.value + (sel.value === "__local__" ? " dtype=" + dsel.value : ""));
+  log("読み込み開始: " + sel.options[sel.selectedIndex].text + (sel.value === "__local__" ? " dtype=" + dsel.value : ""));
   $("#load").disabled = sel.disabled = dsel.disabled = true;
   setStatus("読み込み中…(大きいモデルは時間がかかります)");
   const local = sel.value === "__local__";
-  worker.postMessage({type:"load", model: sel.value, device: hasGPU ? "webgpu" : "wasm",
-    dtype: local ? dsel.value : "q4", files: local ? localFiles : null});
+  const [mid, mf0] = sel.value.split("|");
+  let dtype = local ? dsel.value : "q4", mf = mf0 || null;
+  if (local && !OK.includes(dtype)) { mf = "model_" + dtype; }
+  worker.postMessage({type:"load", model: mid, device: hasGPU ? "webgpu" : "wasm", dtype, mf, files: local ? localFiles : null});
 };
 $("#clear").onclick = () => { history.length = 0; $("#log").innerHTML = ""; };
 
@@ -232,6 +235,7 @@ worker.onmessage = ({data:d}) => {
   else if (d.type === "done") { log(`生成完了 ${nTok}チャンク ${(((performance.now() - tg) / 1000)).toFixed(1)}秒`); history.push({role:"assistant", content: cur.textContent}); finish(); }
   else if (d.type === "error") {
     clearInterval(hb); loading = false; log("エラー: " + d.message, "e");
+    if (/^\d+$/.test(d.message)) log("→ ONNX Runtime内部エラー(未対応オペレーターやモデル形式の不一致の可能性)。別のモデル/精度を試してください", "w");
     setStatus("エラー: " + d.message + "(メモリ不足の場合は小さいモデルを選び、ページを再読み込みしてください)");
     $("#load").disabled = sel.disabled = dsel.disabled = false; if (busy) finish();
   }
