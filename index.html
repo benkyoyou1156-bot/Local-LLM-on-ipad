@@ -7,71 +7,73 @@
 <meta name="apple-mobile-web-app-title" content="ローカルAI">
 <title>ローカルAI</title>
 <style>
-:root{--bg:#fff;--fg:#1c1c1e;--sub:#6e6e73;--card:#f2f2f7;--line:#e5e5ea;--ac:#0a84ff;--ok:#30d158}
-@media(prefers-color-scheme:dark){:root{--bg:#000;--fg:#f2f2f7;--sub:#98989d;--card:#1c1c1e;--line:#2c2c2e}}
+:root{--bg:#faf9f5;--fg:#29261b;--sub:#6b6a65;--card:#f0eee6;--line:#e3e0d3;--ac:#c96442;--inp:#fff;--ok:#5a9a5a}
+@media(prefers-color-scheme:dark){:root{--bg:#262624;--fg:#faf9f5;--sub:#a3a29a;--card:#30302e;--line:#3d3d3a;--ac:#d97757;--inp:#30302e}}
 *{box-sizing:border-box}[hidden]{display:none!important}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,"Hiragino Sans",sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Hiragino Sans",-apple-system,sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 button,select,textarea,input{font:inherit;color:inherit}
-button{border:0;border-radius:12px;padding:9px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
-button.sec{background:var(--card);color:var(--fg)}button:disabled{opacity:.4}
-select,textarea,input[type=text],input:not([type]){width:100%;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px 12px}
-header{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line)}
-header b{font-size:17px}#chip{flex:1;min-width:0;font-size:12px;color:var(--sub);background:var(--card);border-radius:20px;padding:4px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-#chip::before{content:"●";color:var(--sub);margin-right:6px}#chip.on::before{color:var(--ok)}
-.ib{padding:6px 10px;font-size:18px;background:none;color:var(--fg)}
-#setup{flex:1;overflow:auto;padding:24px 18px;max-width:640px;width:100%;margin:0 auto}
-.hero{text-align:center;margin-bottom:20px}.hero .lg{font-size:56px}.hero h1{font-size:24px;margin:4px 0}.hero p{color:var(--sub);margin:6px 0}
-.card{display:block;width:100%;text-align:left;background:var(--card);color:var(--fg);border:2px solid transparent;border-radius:16px;padding:14px 16px;margin:10px 0}
-.card.rec{border-color:var(--ac)}.card b{font-size:17px}.card small{display:block;color:var(--sub);font-weight:400}
-.tag{font-size:11px;background:var(--ac);color:#fff;border-radius:8px;padding:1px 8px;margin-left:8px}
-.bar{height:8px;background:var(--card);border-radius:8px;overflow:hidden;margin:14px 0 8px}.bar i{display:block;height:100%;width:0;background:var(--ac);transition:width .2s}
-.note{font-size:13px;color:var(--sub);text-align:center}.err{color:#ff453a;font-size:14px;margin:10px 0}
-#chat{flex:1;display:flex;flex-direction:column;min-height:0;width:100%;max-width:820px;margin:0 auto}
-#log{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
-.m{max-width:88%;margin:0 0 10px;padding:9px 14px;border-radius:18px;white-space:pre-wrap;word-break:break-word}
-.u{background:var(--ac);color:#fff;margin-left:auto;border-bottom-right-radius:6px}.a{background:var(--card);border-bottom-left-radius:6px}
-.a.typing:empty::after{content:"考え中…";color:var(--sub)}.cp{display:block;font-size:12px;color:var(--sub);margin-top:4px;cursor:pointer}
-#hint{text-align:center;color:var(--sub);margin-top:8vh}#hint .lg{font-size:44px}
-.chip{display:inline-block;margin:4px;padding:7px 14px;border-radius:20px;background:var(--card);color:var(--fg);font-weight:500;font-size:14px}
-form{display:flex;gap:8px;align-items:flex-end;padding:10px 14px}
-#inp{flex:1;resize:none;height:44px;max-height:140px;border-radius:22px;padding:10px 16px}
-#send{border-radius:50%;width:44px;height:44px;padding:0;font-size:18px}
-#sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:flex;align-items:flex-end;justify-content:center}
-.pane{background:var(--bg);width:min(720px,100%);max-height:92dvh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;padding:14px 16px calc(14px + env(safe-area-inset-bottom))}
-.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.ph b{font-size:18px}
-.body{overflow:auto;-webkit-overflow-scrolling:touch}
-.body h3{font-size:13px;color:var(--sub);margin:18px 0 6px;text-transform:none}
+button{border:0;border-radius:10px;padding:9px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
+button.sec{background:var(--card);color:var(--fg);border:1px solid var(--line)}button:disabled{opacity:.4}
+select,textarea,input[type=text],input:not([type]){width:100%;border:1px solid var(--line);border-radius:10px;background:var(--inp);padding:8px 12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px}
+#chip{max-width:60%;font:13px -apple-system,"Hiragino Sans",sans-serif;color:var(--sub);background:var(--card);border-radius:20px;padding:5px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+#chip::before{content:"●";color:var(--sub);margin-right:6px;font-size:10px}#chip.on::before{color:var(--ok)}
+.ib{padding:6px 10px;font-size:20px;background:none;color:var(--sub);border:0}
+#setup{flex:1;overflow:auto;padding:28px 18px;max-width:620px;width:100%;margin:0 auto}
+.hero{text-align:center;margin-bottom:22px}.lg{font-size:52px;color:var(--ac);line-height:1.1}.hero h1{font-size:28px;font-weight:400;margin:8px 0}.hero p{color:var(--sub);margin:6px 0;font-family:-apple-system,"Hiragino Sans",sans-serif;font-size:15px}
+.card{display:block;width:100%;text-align:left;background:var(--inp);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:14px 18px;margin:10px 0;font-weight:400}
+.card.rec{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}.card b{font-size:17px;font-weight:500}.card small{display:block;color:var(--sub);font-size:13px;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.tag{font:11px -apple-system,sans-serif;background:var(--ac);color:#fff;border-radius:8px;padding:1px 8px;margin-left:8px}
+.bar{height:6px;background:var(--card);border-radius:6px;overflow:hidden;margin:14px 0 10px}.bar i{display:block;height:100%;width:0;background:var(--ac);transition:width .25s}
+#ptxt{text-align:center;white-space:pre-line}
+.note{font:13px -apple-system,"Hiragino Sans",sans-serif;color:var(--sub);text-align:center}.err{color:#d6453a;font-size:14px;margin:10px 0}
+#chat{flex:1;display:flex;flex-direction:column;min-height:0;width:100%;max-width:760px;margin:0 auto}
+#log{flex:1;overflow-y:auto;padding:8px 16px;-webkit-overflow-scrolling:touch}
+.m{margin:0 0 18px;word-break:break-word;white-space:pre-wrap}
+.u{max-width:82%;margin-left:auto;background:var(--card);padding:9px 16px;border-radius:18px}
+.a{padding:0 2px}.a.typing:empty::before{content:"✻";color:var(--ac);font-size:20px;display:inline-block;animation:sp 1.2s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.cp{display:block;font:12px -apple-system,sans-serif;color:var(--sub);margin-top:4px;cursor:pointer}
+#hint{text-align:center;margin-top:9vh}#hint h2{font-size:30px;font-weight:400;margin:6px 0}#hint p{color:var(--sub);margin:0 0 14px;font-family:-apple-system,"Hiragino Sans",sans-serif;font-size:15px}
+.chipb{display:inline-block;margin:4px;padding:8px 16px;border-radius:20px;background:none;color:var(--fg);border:1px solid var(--line);font:500 14px -apple-system,"Hiragino Sans",sans-serif}
+form{padding:6px 14px 12px}
+.box{display:flex;flex-direction:column;gap:4px;background:var(--inp);border:1px solid var(--line);border-radius:22px;padding:12px 10px 8px 18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.tb{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#msel{width:auto;max-width:68%;border:0;background:none;color:var(--sub);padding:4px 0;font:14px -apple-system,"Hiragino Sans",sans-serif}
+#pb{margin:0 16px 8px;padding:12px 16px;background:var(--card);border-radius:16px;font:14px -apple-system,"Hiragino Sans",sans-serif}#pb .bar{margin:8px 0}#perr{margin:0 16px 8px}
+#inp{resize:none;height:30px;max-height:150px;border:0;background:none;padding:6px 0;outline:none;font-family:-apple-system,"Hiragino Sans",sans-serif}
+#send{border-radius:50%;width:36px;height:36px;padding:0;font-size:17px;flex:none}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.pane{background:var(--bg);width:min(720px,100%);max-height:92dvh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding:14px 18px calc(14px + env(safe-area-inset-bottom))}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.ph b{font-size:20px;font-weight:500}
+.body{overflow:auto;-webkit-overflow-scrolling:touch;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.body h3{font-size:13px;color:var(--sub);margin:20px 0 6px;font-weight:600}
 .body label{display:flex;justify-content:space-between;font-size:14px;margin:12px 0 4px}.body label output{color:var(--sub)}
-.body input[type=range]{width:100%}.row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.row button{flex:1}
+.body input[type=range]{width:100%;accent-color:var(--ac)}.row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.row button{flex:1}
 .hint{font-size:12px;color:var(--sub);margin:2px 0}
 #dbg{font:11px/1.4 ui-monospace,Menlo,monospace;background:var(--card);padding:8px;border-radius:10px;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-#dbg .e{color:#ff453a}#dbg .w{color:#ff9f0a}
-.it{display:block;width:100%;text-align:left;background:var(--card);color:var(--fg);margin:6px 0;font-weight:500;word-break:break-all}.it small{display:block;color:var(--sub);font-weight:400;font-size:12px}
-.warn{color:#ff9f0a;font-size:13px;margin:6px 0}
+#dbg .e{color:#d6453a}#dbg .w{color:#c98a1a}
+.it{display:block;width:100%;text-align:left;background:var(--inp);color:var(--fg);border:1px solid var(--line);margin:6px 0;font-weight:500;word-break:break-all}.it small{display:block;color:var(--sub);font-weight:400;font-size:12px}
+.warn{color:#c98a1a;font-size:13px;margin:6px 0}
 </style>
 </head>
 <body>
 <header>
-  <b>ローカルAI</b><div id="chip" class="" title="設定">未読み込み</div>
   <button class="ib" id="newc" title="新しい会話">✎</button>
-  <button class="ib" id="gear" title="設定">⚙️</button>
+  <div id="chip" title="設定">未読み込み</div>
+  <button class="ib" id="gear" title="設定">⚙︎</button>
 </header>
 
-<section id="setup">
-  <div class="hero"><div class="lg">🧠</div><h1>あなた専用のAI</h1>
-    <p>このiPadの中だけで動くAIです。<br>会話の内容は外部に送信されません。</p></div>
-  <div id="cards"></div>
-  <div id="prog" hidden><div id="ptxt" style="text-align:center">準備中…</div><div class="bar"><i></i></div>
-    <p class="note">初回はダウンロードに数分かかります(Wi-Fi推奨)。<br>この画面を閉じずにお待ちください。</p></div>
-  <div id="perr" class="err" hidden></div>
-  <p class="note" id="envnote"></p>
-  <p class="note"><a href="#" id="more" style="color:var(--ac)">他のモデルを探す・ファイルから読み込む</a></p>
-</section>
 
-<section id="chat" hidden>
+
+<section id="chat">
   <div id="log"></div>
-  <form id="f"><textarea id="inp" rows="1" placeholder="メッセージを入力"></textarea><button id="send">↑</button></form>
+  <div id="pb" hidden><div id="ptxt">準備中…</div><div class="bar"><i></i></div>
+    <div class="note">初回はダウンロードに数分かかります(Wi-Fi推奨)。<br>読み込みが終わると、メッセージを自動で送信します。</div>
+    <div style="text-align:center;margin-top:8px"><button class="sec" id="cancel">キャンセル</button></div></div>
+  <div id="perr" class="err" hidden></div>
+  <form id="f"><div class="box"><textarea id="inp" rows="1" placeholder="メッセージを送信"></textarea><div class="tb"><select id="msel" aria-label="モデル"></select><button id="send">↑</button></div></div></form>
 </section>
 
 <div id="sheet" hidden>
@@ -131,7 +133,15 @@ const fmt=a=>{try{return typeof a==="string"?a:(a&&a.message)||JSON.stringify(a)
 for(const k of["log","warn","error"]){const o=console[k].bind(console);console[k]=(...a)=>{L(a.map(fmt).join(" ").slice(0,300),k==="error"?"e":k==="warn"?"w":"i");o(...a)}}
 self.addEventListener("unhandledrejection",e=>L("未処理エラー: "+fmt(e.reason),"e"));
 const files={};
-const prog=p=>{if(p.status==="progress"){files[p.file]={l:p.loaded,t:p.total};let l=0,t=0;for(const k in files){l+=files[k].l;t+=files[k].t}postMessage({type:"progress",pct:t?l/t*100:0,mb:l/1048576,tot:t/1048576})}else if(p.status==="done")L("取得完了 "+p.file);else if(p.status==="initiate")L("取得開始 "+p.file)};
+const pend=new Set();
+const prog=p=>{
+  if(p.status==="initiate"){pend.add(p.file);L("取得開始 "+p.file)}
+  else if(p.status==="done"){pend.delete(p.file);L("取得完了 "+p.file)}
+  else if(p.status==="progress"){files[p.file]={l:p.loaded,t:p.total}}
+  else return;
+  let l=0,t=0;for(const k in files){l+=files[k].l;t+=files[k].t}
+  postMessage({type:"progress",pct:t?l/t*100:0,mb:l/1048576,tot:t/1048576,pend:pend.size});
+};
 async function init(v){
   if(ver===v)return; if(ver)throw new Error("別バージョンを使うにはページを再読み込みしてください");
   L("transformers.js "+v+" を取得中…");
@@ -149,6 +159,7 @@ function local(fs){
     return f?new Response(f,{headers:{"content-length":String(f.size)}}):undefined},async put(){}};
 }
 async function load(model,device,dtype,mf,opt){
+  for(const k in files)delete files[k];pend.clear();
   if(gen){try{await gen.dispose()}catch{}gen=null}
   const so={};
   if(opt.verbose){env.backends.onnx.logLevel="verbose";so.logSeverityLevel=0;so.logVerbosityLevel=1}
@@ -197,7 +208,6 @@ let hasGPU=false,f16=false;
 try{const a=await navigator.gpu.requestAdapter();hasGPU=!!a;f16=!!a&&a.features.has("shader-f16")}catch{}
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 log(`UA=${navigator.userAgent.slice(0,80)} WebGPU=${hasGPU} f16=${f16}`);
-$("#envnote").textContent=hasGPU?"高速モードで動作します(WebGPU)":"この端末は標準モードで動作します(少し遅くなります)";
 
 // ---- モデル候補 ----
 const P=[
@@ -205,71 +215,102 @@ const P=[
  {id:"onnx-community/LFM2-700M-ONNX",dt:"q4",name:"ふつう",desc:"賢さと速さのバランス(約500MB)"},
  {id:"onnx-community/LFM2-1.2B-ONNX",dt:"q4",name:"高品質",desc:"より賢い。新しめのiPad・PC向け(約700MB)"},
 ];
-function cards(){
-  const c=$("#cards");c.textContent="";
-  for(const m of P){const b=document.createElement("button");b.className="card"+(m.rec?" rec":"");
-    b.innerHTML="<b></b><small></small>";b.firstChild.textContent=m.name+"モデル";b.lastChild.textContent=m.desc;
-    if(m.rec){const t=document.createElement("span");t.className="tag";t.textContent="おすすめ";b.firstChild.append(t)}
-    b.onclick=()=>loadModel(m);c.append(b)}
+const mkey=m=>m?m.id+"|"+m.dt+"|"+(m.mf||""):"";
+let ML=[],loadedKey="",dev="",pendingText=null;
+function buildSel(){
+  const ms=$("#msel"),c=S.model||P[0],ck=mkey(c);ms.textContent="";
+  ML=[...P,...(S.custom||[])];let i=ML.findIndex(m=>mkey(m)===ck);
+  ML.forEach((m,j)=>ms.add(new Option(m.name+(P.includes(m)?"モデル":""),String(j))));
+  if(i<0){ms.add(new Option(c.name,"cur"));i="cur"}
+  const sp=new Option("──────","x");sp.disabled=true;ms.add(sp);
+  ms.add(new Option("＋ 他のモデルを探す…","srch"));ms.add(new Option("＋ ファイルから読み込む…","file"));
+  ms.value=String(i);
 }
-cards();
+function updChip(){
+  const c=S.model||P[0],ch=$("#chip");
+  if(loading){ch.textContent=c.name+" ・読み込み中";ch.className=""}
+  else if(ready&&mkey(c)===loadedKey){ch.textContent=c.name+(dev==="webgpu"?" ・高速":" ・標準");ch.className="on"}
+  else{ch.textContent=c.name+" ・未読み込み";ch.className=""}
+  buildSel();
+}
+function addCustom(){S.custom=[S.model,...(S.custom||[]).filter(x=>mkey(x)!==mkey(S.model))].slice(0,5);save()}
+$("#msel").onchange=e=>{
+  const v=e.target.value;
+  if(v==="srch"){buildSel();$("#openHF").click();return}
+  if(v==="file"){buildSel();$("#dirIn").click();return}
+  if(v==="cur"||busy||loading){buildSel();return}
+  const m=ML[+v];S.model={id:m.id,dt:m.dt,mf:m.mf||null,name:m.name||m.id.split("/").pop()};save();updChip();
+};
 
 // ---- ワーカー ----
-const W=new Worker(URL.createObjectURL(new Blob([$("#wk").textContent],{type:"text/javascript"})),{type:"module"});
-let loading=false,ready=false,busy=false,cur=null,hb=null,last=performance.now();
-const show=v=>{$("#setup").hidden=v!=="setup";$("#chat").hidden=v!=="chat"};
+let W;const wkSrc=$("#wk").textContent;
+function mk(){W=new Worker(URL.createObjectURL(new Blob([wkSrc],{type:"text/javascript"})),{type:"module"});W.onmessage=onMsg;W.onerror=onErr}
+let loading=false,ready=false,busy=false,cur=null,hb=null,last=performance.now(),pg=null,stage=false,initStart=0;
+const flag=(on)=>{try{on?localStorage.setItem("llm_ld",Date.now()):localStorage.removeItem("llm_ld")}catch{}};
+function updProg(){
+  if(!loading)return;
+  if(pg&&(pg.pend>0||pg.pct<99.5)){bar(pg.pct);initStart=0;$("#ptxt").textContent=`ダウンロード中 ${pg.pct.toFixed(0)}%(${pg.mb.toFixed(0)} / ${pg.tot.toFixed(0)}MB)`}
+  else if(pg||stage){if(!initStart)initStart=performance.now();bar(100);const t=((performance.now()-initStart)/1000)|0;
+    $("#ptxt").textContent="モデルを準備しています… "+t+"秒"+(t>90?"\n時間がかかっています。キャンセルして軽いモデルをお試しください。":"")}
+}
+const show=()=>{};
 const bar=p=>$(".bar i").style.width=p+"%";
 const modelName=()=>S.model?S.model.name:"未読み込み";
 function loadModel(m){
   if(loading)return;loading=true;ready=false;
-  S.model={id:m.id,dt:m.dt,mf:m.mf||null,name:m.name||m.id.split("/").pop()};if(!m.files)save();
-  $("#chip").textContent=S.model.name+"(読み込み中)";$("#chip").className="";
-  show("setup");$("#cards").hidden=true;$("#more").parentNode.hidden=true;$("#prog").hidden=false;$("#perr").hidden=true;bar(2);$("#ptxt").textContent="準備中…";
-  last=performance.now();const ts=last;clearInterval(hb);
-  hb=setInterval(()=>log(`…経過${((performance.now()-ts)/1000)|0}秒`,"t"),5000);
+  S.model={id:m.id,dt:m.dt,mf:m.mf||null,name:m.name||m.id.split("/").pop()};if(!m.files)save();if(!m.files&&!P.some(x=>mkey(x)===mkey(S.model)))addCustom();
+  updChip();$("#pb").hidden=false;$("#perr").hidden=true;bar(2);$("#ptxt").textContent="準備中…";
+  pg=null;stage=false;initStart=0;flag(true);
+  last=performance.now();const ts=last;clearInterval(hb);let n=0;
+  hb=setInterval(()=>{updProg();if(++n%5===0)log(`…経過${((performance.now()-ts)/1000)|0}秒`)},1000);
   log("読み込み開始: "+S.model.name+" ("+m.id+" "+m.dt+")");
   W.postMessage({type:"load",ver:S.ver,model:m.files?"local":m.id,device:hasGPU?"webgpu":"wasm",dtype:m.dt,mf:m.mf||null,files:m.files||null,opt:{verbose:S.verbose,lowmem:S.low}});
 }
-W.onmessage=({data:d})=>{
+function onMsg({data:d}){
   last=performance.now();
   if(d.type==="log"){log(d.text,d.lv==="e"?"e":d.lv==="w"?"w":"")}
-  else if(d.type==="progress"){bar(d.pct);$("#ptxt").textContent=d.pct>=99.5?"初期化中…(1〜2分かかることがあります)":`ダウンロード中 ${d.pct.toFixed(0)}%(${d.mb.toFixed(0)} / ${d.tot.toFixed(0)}MB)`}
-  else if(d.type==="stage")$("#ptxt").textContent=d.text;
-  else if(d.type==="fallback")$("#ptxt").textContent="標準モードに切り替えています…";
-  else if(d.type==="ready"){clearInterval(hb);loading=false;ready=true;log("準備完了 "+d.device);
-    $("#chip").textContent=modelName()+(d.device==="webgpu"?" ・高速":" ・標準");$("#chip").className="on";
-    $("#cards").hidden=false;$("#more").parentNode.hidden=false;$("#prog").hidden=true;show("chat");renderChat();$("#inp").focus()}
+  else if(d.type==="progress"){pg=d;updProg()}
+  else if(d.type==="stage"){stage=true;updProg()}
+  else if(d.type==="fallback"){pg=null;stage=false;initStart=0;$("#ptxt").textContent="標準モードに切り替えています…"}
+  else if(d.type==="ready"){clearInterval(hb);flag(false);loading=false;ready=true;log("準備完了 "+d.device);
+    loadedKey=mkey(S.model);dev=d.device;updChip();$("#pb").hidden=true;renderChat();
+    if(pendingText){const t=pendingText;pendingText=null;send(t)}else $("#inp").focus()}
   else if(d.type==="token"){cur.textContent+=d.text;$("#log").scrollTop=1e9}
   else if(d.type==="done"){H.push({role:"assistant",content:cur.textContent});saveH();endGen()}
-  else if(d.type==="error"){clearInterval(hb);log("エラー: "+d.message,"e");
+  else if(d.type==="error"){clearInterval(hb);flag(false);log("エラー: "+d.message,"e");
     if(busy){cur.textContent+=(cur.textContent?"\n":"")+"(エラーが発生しました)";endGen();return}
-    loading=false;$("#cards").hidden=false;$("#more").parentNode.hidden=false;$("#prog").hidden=true;
+    loading=false;pendingText=null;$("#pb").hidden=true;
     const pe=$("#perr");pe.hidden=false;pe.textContent="読み込めませんでした。メモリ不足の可能性があります。もっと軽いモデルをお試しください。(詳細: "+d.message+")";
-    $("#chip").textContent="読み込み失敗";show("setup")}
+    updChip()}
 };
-W.onerror=e=>{clearInterval(hb);loading=false;log("Workerエラー: "+(e.message||"不明"),"e");$("#perr").hidden=false;$("#perr").textContent="エラーが発生しました。ページを再読み込みしてください。"};
+function onErr(e){clearInterval(hb);flag(false);loading=false;log("Workerエラー: "+(e.message||"不明"),"e");$("#perr").hidden=false;$("#perr").textContent="エラーが発生しました。ページを再読み込みしてください。";$("#pb").hidden=true;pendingText=null;updChip()};
+mk();
 
 // ---- チャット ----
 function addMsg(cls,text){const d=document.createElement("div");d.className="m "+cls;d.textContent=text;$("#log").append(d);$("#log").scrollTop=1e9;return d}
 function addCopy(d){const c=document.createElement("span");c.className="cp";c.textContent="コピー";c.onclick=()=>navigator.clipboard?.writeText(d.firstChild.textContent).then(()=>{c.textContent="コピーしました"});d.append(c)}
 function renderChat(){
   const l=$("#log");l.textContent="";
-  if(!H.length){l.innerHTML='<div id="hint"><div class="lg">💬</div><p>なんでも聞いてみましょう</p></div>';
-    for(const q of["今日の夕飯の献立を考えて","面白い雑学を教えて","メールの返信を丁寧にして"]){const c=document.createElement("button");c.className="chip";c.textContent=q;c.onclick=()=>send(q);$("#hint").append(c)}return}
+  if(!H.length){l.innerHTML='<div id="hint"><div class="lg">✻</div><h2>こんにちは</h2><p>今日はどんなお手伝いをしましょうか?</p></div>';
+    for(const q of["今日の夕飯の献立を考えて","面白い雑学を教えて","メールの返信を丁寧にして"]){const c=document.createElement("button");c.className="chipb";c.textContent=q;c.onclick=()=>send(q);$("#hint").append(c)}return}
   for(const m of H){const d=addMsg(m.role==="user"?"u":"a",m.content);if(m.role!=="user")addCopy(d)}
 }
 function endGen(){busy=false;cur.classList.remove("typing");if(cur.textContent)addCopy(cur);$("#send").textContent="↑"}
 function send(t){
-  t=t.trim();if(!t||!ready||busy)return;
+  t=t.trim();if(!t||busy||loading)return;
+  const cfg=S.model||P[0];
+  if(!ready||mkey(cfg)!==loadedKey){pendingText=t;$("#inp").value="";$("#inp").style.height="30px";loadModel(cfg);return}
   if(!H.length)$("#log").textContent="";
-  $("#inp").value="";$("#inp").style.height="44px";
+  $("#inp").value="";$("#inp").style.height="30px";
   H.push({role:"user",content:t});addMsg("u",t);cur=addMsg("a","");cur.classList.add("typing");busy=true;$("#send").textContent="■";
   W.postMessage({type:"generate",messages:[{role:"system",content:S.sys},...H.slice(-S.mem)],g:{temp:S.temp,max:S.maxTok,topk:S.topk,rp:S.rp}});
 }
+$("#cancel").onclick=()=>{W.terminate();mk();clearInterval(hb);flag(false);loading=false;ready=false;
+  $("#pb").hidden=true;pendingText=null;updChip();log("キャンセルしました","w")};
 $("#f").onsubmit=e=>{e.preventDefault();if(busy)W.postMessage({type:"stop"});else send($("#inp").value)};
 $("#inp").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$("#f").requestSubmit()}};
-$("#inp").oninput=e=>{e.target.style.height="44px";e.target.style.height=Math.min(e.target.scrollHeight,140)+"px"};
-$("#newc").onclick=()=>{if(busy)return;H=[];saveH();if(ready)renderChat()};
+$("#inp").oninput=e=>{e.target.style.height="30px";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px"};
+$("#newc").onclick=()=>{if(busy)return;H=[];saveH();renderChat()};
 
 // ---- 設定シート ----
 const pane=id=>{$("#sheet").hidden=false;$$(".pane").forEach(p=>p.hidden=p.id!==id)};
@@ -279,8 +320,7 @@ $("#sheet").onclick=e=>{if(e.target.id==="sheet")closeSheet()};
 async function stor(){try{const e=await navigator.storage.estimate();$("#stor").textContent="この端末に保存中のデータ: 約"+((e.usage||0)/1048576).toFixed(0)+"MB"}catch{$("#stor").textContent=""}}
 function openSet(){$("#curm").textContent="現在のモデル: "+modelName();pane("p-set");stor()}
 $("#gear").onclick=openSet;$("#chip").onclick=openSet;
-$("#chg").onclick=()=>{closeSheet();if(!loading){ready=false;show("setup");$("#perr").hidden=true}};
-$("#more").onclick=e=>{e.preventDefault();openSet()};
+$("#chg").onclick=()=>{closeSheet();$("#msel").focus()};
 const applyFs=()=>document.body.style.fontSize=S.fs+"px";
 $$("[data-k]").forEach(el=>{
   const k=el.dataset.k,cb=el.type==="checkbox",o=$(`[data-o=${k}]`);
@@ -289,7 +329,7 @@ $$("[data-k]").forEach(el=>{
 });
 applyFs();
 $("#delc").onclick=async()=>{if(!confirm("ダウンロード済みのモデルをすべて削除します。次回は再ダウンロードが必要です。"))return;try{for(const k of await caches.keys())await caches.delete(k)}catch{}stor()};
-$("#delh").onclick=()=>{if(!confirm("会話をすべて削除します。"))return;H=[];saveH();if(ready)renderChat()};
+$("#delh").onclick=()=>{if(!confirm("会話をすべて削除します。"))return;H=[];saveH();renderChat()};
 $("#rst").onclick=()=>{if(!confirm("設定を初期化します。"))return;try{localStorage.removeItem("llm_s")}catch{}location.reload()};
 
 // ---- ローカルファイル ----
@@ -350,8 +390,10 @@ async function hfDetail(id){
 }
 
 // ---- 起動 ----
-$("#chip").textContent=modelName();
-if(S.auto&&S.model&&S.model.id&&S.model.id!=="local")loadModel(S.model);
+buildSel();updChip();renderChat();
+let crashed=false;try{crashed=!!localStorage.getItem("llm_ld");localStorage.removeItem("llm_ld")}catch{}
+if(crashed){S.model=null;save();updChip();const pe=$("#perr");pe.hidden=false;pe.textContent="前回の読み込み中にアプリが止まりました(メモリ不足の可能性があります)。「かんたん」など軽いモデルをお試しください。"}
+else if(S.auto&&S.model&&S.model.id&&S.model.id!=="local")loadModel(S.model);
 </script>
 </body>
 </html>
