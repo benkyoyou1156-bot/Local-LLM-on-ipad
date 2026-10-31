@@ -34,6 +34,7 @@ textarea{flex:1;resize:none;height:44px}
 <header>
   <select id="model"></select>
   <select id="dtype" hidden></select>
+  <select id="ver"><option value="4.3.0">transformers.js 4.3.0</option><option value="3.7.0">transformers.js 3.7.0(旧)</option></select>
   <button id="load">モデルを読み込む</button>
   <label style="font-size:13px"><input type="checkbox" id="verbose"> 詳細ログ</label>
   <label style="font-size:13px"><input type="checkbox" id="lowmem"> 省メモリ</label>
@@ -54,22 +55,20 @@ textarea{flex:1;resize:none;height:44px}
 
 <script type="module">
 const MODELS = [
-  {id:"onnx-community/LFM2-350M-ONNX", label:"LFM2 350M(動作実績あり・推奨 約280MB)"},
-  {id:"onnx-community/LFM2-700M-ONNX", label:"LFM2 700M(高品質・メモリ多め)"},
-  {id:"LiquidAI/LFM2.5-350M-ONNX", mf:"model_q4f32", label:"LFM2.5 350M q4f32(実験・約460MB)"},
-  {id:"LiquidAI/LFM2.5-350M-ONNX", label:"LFM2.5 350M q4(実験・失敗する場合あり)"},
-  {id:"onnx-community/SmolLM2-360M-Instruct", label:"SmolLM2 360M(切り分け用)"},
-  {id:"onnx-community/SmolLM2-135M-Instruct", label:"SmolLM2 135M(最小・動作テスト用)"},
+  {id:"onnx-community/LFM2.5-350M-ONNX", dt:"q4f16", label:"LFM2.5 350M q4f16(v4推奨)"},
+  {id:"onnx-community/LFM2.5-350M-ONNX", dt:"q4", label:"LFM2.5 350M q4"},
+  {id:"onnx-community/LFM2-350M-ONNX", dt:"q4", label:"LFM2 350M q4"},
+  {id:"onnx-community/LFM2-700M-ONNX", dt:"q4", label:"LFM2 700M q4(メモリ多め)"},
+  {id:"onnx-community/SmolLM2-360M-Instruct", dt:"q4", label:"SmolLM2 360M(切り分け用)"},
+  {id:"onnx-community/SmolLM2-135M-Instruct", dt:"q4", label:"SmolLM2 135M(最小)"},
 ];
 const $ = s => document.querySelector(s);
 const sel = $("#model");
-MODELS.forEach(m => sel.add(new Option(m.label, m.id + (m.mf ? "|" + m.mf : ""))));
+MODELS.forEach((m, i) => sel.add(new Option(m.label, String(i))));
 
 // ---- Worker(推論をメインスレッドから分離) ----
 const workerSrc = `
-import { pipeline, TextStreamer, InterruptableStoppingCriteria, env }
-  from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.0";
-env.allowLocalModels = false;
+let pipeline, TextStreamer, env, stopper = null, loadedVer = null;
 const L = (t, lv) => postMessage({type:"log", text:t, lv: lv || "i"});
 const fmt = a => { try { return typeof a === "string" ? a : (a && a.message) || JSON.stringify(a); } catch { return String(a); } };
 for (const k of ["log","warn","error"]) { const o = console[k].bind(console);
@@ -84,7 +83,17 @@ function logP(p) {
     if (seen[p.file] !== b) { seen[p.file] = b; L(p.file + " " + (p.loaded/1048576).toFixed(1) + "/" + (p.total/1048576).toFixed(1) + "MB"); } }
   else if (p.status === "done") L("取得完了 " + p.file);
 }
-let gen = null; const stopper = new InterruptableStoppingCriteria();
+let gen = null;
+async function init(ver) {
+  if (loadedVer === ver) return;
+  if (loadedVer) throw new Error("別バージョンを読み込むにはページを再読み込みしてください");
+  L("transformers.js " + ver + " を取得中…");
+  const T = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@" + ver);
+  pipeline = T.pipeline; TextStreamer = T.TextStreamer; env = T.env;
+  env.allowLocalModels = false;
+  stopper = T.InterruptableStoppingCriteria ? new T.InterruptableStoppingCriteria() : null;
+  loadedVer = ver; L("transformers.js " + ver + " 読み込み完了");
+}
 const files = {};
 const progress = p => {
   if (p.status === "progress") {
@@ -128,6 +137,7 @@ async function load(model, device, dtype, mf, opt) {
 onmessage = async ({data}) => {
   try {
     if (data.type === "load") {
+      await init(data.ver);
       let device = data.device, model = data.model;
       if (data.files) { setupLocal(data.files); model = "local/model"; }
       try { await load(model, device, data.dtype, data.mf, data.opt); }
@@ -138,15 +148,15 @@ onmessage = async ({data}) => {
       }
       postMessage({type:"ready", device});
     } else if (data.type === "generate") {
-      stopper.reset();
+      if (stopper) stopper.reset();
       const streamer = new TextStreamer(gen.tokenizer, {
         skip_prompt: true, skip_special_tokens: true,
         callback_function: t => postMessage({type:"token", text:t})
       });
       await gen(data.messages, {max_new_tokens: 512, do_sample: true, temperature: 0.7, top_p: 0.9,
-        repetition_penalty: 1.1, streamer, stopping_criteria: stopper});
+        repetition_penalty: 1.1, streamer, ...(stopper ? {stopping_criteria: stopper} : {})});
       postMessage({type:"done"});
-    } else if (data.type === "stop") stopper.interrupt();
+    } else if (data.type === "stop" && stopper) stopper.interrupt();
   } catch (e) { postMessage({type:"error", message: String(e && e.message || e)}); }
 };`;
 const worker = new Worker(URL.createObjectURL(new Blob([workerSrc], {type:"text/javascript"})), {type:"module"});
@@ -156,7 +166,6 @@ let nTok = 0, tg = 0;
 let hasGPU = false;
 try { hasGPU = !!navigator.gpu && !!(await navigator.gpu.requestAdapter()); } catch {}
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (!isIOS && hasGPU && (navigator.deviceMemory || 8) >= 8) sel.selectedIndex = 1;
 const dbg = $("#dbg"), t0 = performance.now();
 function log(t, lv) {
   const d = document.createElement("div"); if (lv) d.className = lv;
@@ -220,10 +229,10 @@ $("#load").onclick = () => {
   $("#load").disabled = sel.disabled = dsel.disabled = true;
   setStatus("読み込み中…(大きいモデルは時間がかかります)");
   const local = sel.value === "__local__";
-  const [mid, mf0] = sel.value.split("|");
-  let dtype = local ? dsel.value : "q4", mf = mf0 || null;
+  const M = local ? null : MODELS[+sel.value];
+  let dtype = local ? dsel.value : M.dt, mf = null;
   if (local && !OK.includes(dtype)) { mf = "model_" + dtype; }
-  worker.postMessage({type:"load", model: mid, device: hasGPU ? "webgpu" : "wasm", dtype, mf, files: local ? localFiles : null, opt: {verbose: $("#verbose").checked, lowmem: $("#lowmem").checked}});
+  worker.postMessage({type:"load", ver: $("#ver").value, model: local ? "local" : M.id, device: hasGPU ? "webgpu" : "wasm", dtype, mf, files: local ? localFiles : null, opt: {verbose: $("#verbose").checked, lowmem: $("#lowmem").checked}});
 };
 $("#clear").onclick = () => { history.length = 0; $("#log").innerHTML = ""; };
 
