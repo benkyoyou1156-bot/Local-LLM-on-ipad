@@ -23,6 +23,16 @@ button.sec{background:var(--card);color:var(--fg);border:1px solid var(--line)}
 #dbg .e{color:#ff453a}#dbg .w{color:#ff9f0a}#dbg .t{color:var(--sub)}
 details{border-top:1px solid var(--line)}summary{padding:6px 14px;font-size:13px;color:var(--sub);cursor:pointer}
 summary button{padding:2px 10px;font-size:12px;margin-left:8px}
+[hidden]{display:none!important}
+#hf{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:min(720px,100%);max-height:88dvh;border-radius:16px 16px 0 0;display:flex;flex-direction:column;padding:12px 14px calc(12px + env(safe-area-inset-bottom))}
+.sh,.sr{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sr input{flex:1;min-width:0;font:inherit;color:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px 12px}
+#hflist,#hfdetail{overflow:auto;-webkit-overflow-scrolling:touch}
+.it{display:block;width:100%;text-align:left;background:var(--card);color:var(--fg);border:1px solid var(--line);margin:6px 0;font-weight:500}
+.it small{display:block;color:var(--sub);font-weight:400;font-size:12px}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:var(--me);color:#fff;margin-left:6px}
+.warn{color:#ff9f0a;font-size:13px;margin:6px 0}
 #log{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
 .m{max-width:85%;margin:0 0 10px;padding:8px 12px;border-radius:14px;white-space:pre-wrap;word-break:break-word}
 .u{background:var(--me);color:#fff;margin-left:auto}.a{background:var(--card)}
@@ -38,6 +48,7 @@ textarea{flex:1;resize:none;height:44px}
   <button id="load">モデルを読み込む</button>
   <label style="font-size:13px"><input type="checkbox" id="verbose"> 詳細ログ</label>
   <label style="font-size:13px"><input type="checkbox" id="lowmem"> 省メモリ</label>
+  <button id="openHF" class="sec">🔍 Hugging Faceで探す</button>
   <button id="pickDir" class="sec">📁 ONNXフォルダ</button>
   <button id="pickFiles" class="sec">📄 ファイル選択</button>
   <input type="file" id="dirIn" webkitdirectory multiple hidden>
@@ -53,6 +64,15 @@ textarea{flex:1;resize:none;height:44px}
   <button id="send" disabled>送信</button>
 </form>
 
+<div id="hf" hidden>
+ <div class="sheet">
+  <div class="sh"><b>Hugging Faceからモデルを探す</b><button id="closeHF" class="sec" type="button">閉じる</button></div>
+  <div class="sr"><input id="hfq" placeholder="モデル名で検索 / owner/name を入力" autocomplete="off" autocapitalize="off">
+   <select id="hfsort"><option value="downloads">人気順</option><option value="trendingScore">急上昇</option><option value="createdAt">新着</option></select></div>
+  <div id="hflist"></div>
+  <div id="hfdetail" hidden></div>
+ </div>
+</div>
 <script type="module">
 const MODELS = [
   {id:"onnx-community/LFM2.5-350M-ONNX", dt:"q4f16", label:"LFM2.5 350M q4f16(v4推奨)"},
@@ -65,6 +85,15 @@ const MODELS = [
 const $ = s => document.querySelector(s);
 const sel = $("#model");
 MODELS.forEach((m, i) => sel.add(new Option(m.label, String(i))));
+const SAVED = "hfModels";
+function saveModels() { try { localStorage.setItem(SAVED, JSON.stringify(MODELS.filter(m => m.hf).slice(-8))); } catch {} }
+function addModel(m) {
+  const i = MODELS.findIndex(x => x.id === m.id && x.dt === m.dt && (x.mf || "") === (m.mf || ""));
+  if (i >= 0) return i;
+  MODELS.push(m); sel.add(new Option(m.label, String(MODELS.length - 1)));
+  if (m.hf) saveModels(); return MODELS.length - 1;
+}
+try { JSON.parse(localStorage.getItem(SAVED) || "[]").forEach(addModel); } catch {}
 
 // ---- Worker(推論をメインスレッドから分離) ----
 const workerSrc = `
@@ -118,6 +147,7 @@ function setupLocal(files) {
   };
 }
 async function load(model, device, dtype, mf, opt) {
+  if (gen) { try { await gen.dispose(); } catch {} gen = null; }
   opt = opt || {};
   const so = {};
   if (opt.verbose) { env.backends.onnx.logLevel = "verbose"; so.logSeverityLevel = 0; so.logVerbosityLevel = 1; }
@@ -149,12 +179,16 @@ onmessage = async ({data}) => {
       postMessage({type:"ready", device});
     } else if (data.type === "generate") {
       if (stopper) stopper.reset();
+      try {
+        const pr = gen.tokenizer.apply_chat_template(data.messages, {tokenize: false, add_generation_prompt: true});
+        L("プロンプト: " + JSON.stringify(pr).slice(0, 400));
+      } catch (e) { L("チャットテンプレート適用失敗: " + fmt(e), "e"); }
       const streamer = new TextStreamer(gen.tokenizer, {
         skip_prompt: true, skip_special_tokens: true,
         callback_function: t => postMessage({type:"token", text:t})
       });
-      await gen(data.messages, {max_new_tokens: 512, do_sample: true, temperature: 0.7, top_p: 0.9,
-        repetition_penalty: 1.1, streamer, ...(stopper ? {stopping_criteria: stopper} : {})});
+      await gen(data.messages, {max_new_tokens: 512, do_sample: true, temperature: 0.3, top_k: 50,
+        repetition_penalty: 1.05, streamer, ...(stopper ? {stopping_criteria: stopper} : {})});
       postMessage({type:"done"});
     } else if (data.type === "stop" && stopper) stopper.interrupt();
   } catch (e) { postMessage({type:"error", message: String(e && e.message || e)}); }
@@ -219,10 +253,75 @@ function onPick(e) {
 $("#dirIn").onchange = $("#fileIn").onchange = onPick;
 sel.onchange = () => { dsel.hidden = sel.value !== "__local__"; };
 
+// ---- Hugging Faceブラウザ ----
+const hf = $("#hf"), hq = $("#hfq"), hsort = $("#hfsort"), hl = $("#hflist"), hd = $("#hfdetail");
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
+$("#openHF").onclick = () => { hf.hidden = false; hq.focus(); if (!hl.childElementCount) hfSearch(); };
+$("#closeHF").onclick = () => hf.hidden = true;
+let hT; hq.oninput = () => { clearTimeout(hT); hT = setTimeout(hfSearch, 450); };
+hq.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const v = hq.value.trim();
+  if (/^[\w.-]+\/[\w.-]+$/.test(v)) hfDetail(v); else hfSearch(); } };
+hsort.onchange = hfSearch;
+
+async function hfSearch() {
+  hd.hidden = true; hl.hidden = false; hl.textContent = "検索中…";
+  const q = hq.value.trim();
+  const url = "https://huggingface.co/api/models?" + (q ? "search=" + encodeURIComponent(q) + "&" : "") +
+    "filter=onnx&pipeline_tag=text-generation&sort=" + hsort.value + "&direction=-1&limit=30";
+  try {
+    const r = await fetch(url); if (!r.ok) throw new Error("HTTP " + r.status);
+    const a = await r.json(); hl.textContent = "";
+    if (!a.length) { hl.textContent = "見つかりませんでした"; return; }
+    for (const m of a) {
+      const b = el("button", m.id, "it"); b.type = "button";
+      if ((m.tags || []).includes("transformers.js")) b.append(el("span", "Transformers.js", "badge"));
+      b.append(el("small", `↓${(m.downloads || 0).toLocaleString()}  ♥${m.likes || 0}`));
+      b.onclick = () => hfDetail(m.id); hl.append(b);
+    }
+  } catch (e) { hl.textContent = "検索に失敗しました: " + e.message; log("HF検索失敗: " + e.message, "e"); }
+}
+
+async function hfDetail(id) {
+  hl.hidden = true; hd.hidden = false; hd.textContent = "情報を取得中…";
+  try {
+    const r = await fetch("https://huggingface.co/api/models/" + id + "?blobs=true");
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json(), sizes = {}, names = new Set();
+    for (const f of j.siblings || []) {
+      names.add(f.rfilename.split("/").pop());
+      const m = f.rfilename.match(/^onnx\/model(?:_([A-Za-z0-9]+))?\.onnx(?:_data(?:_\d+)?)?$/);
+      if (m) { const t = DT[m[1]] || m[1] || "fp32"; sizes[t] = (sizes[t] || 0) + (f.size || (f.lfs && f.lfs.size) || 0); }
+    }
+    hd.textContent = "";
+    hd.append(el("b", id), el("div", `↓${(j.downloads || 0).toLocaleString()}  ♥${j.likes || 0}`, "warn"));
+    hd.lastChild.style.color = "var(--sub)";
+    const types = Object.keys(sizes);
+    if (!types.length) { hd.append(el("div", "このリポジトリにはブラウザ用のONNXファイル(onnx/model*.onnx)がありません。", "warn")); }
+    const miss = ["config.json", "tokenizer.json"].filter(n => !names.has(n));
+    if (miss.length) hd.append(el("div", "注意: " + miss.join(", ") + " が見つかりません。動かない可能性があります。", "warn"));
+    const ds = document.createElement("select"); ds.style.margin = "8px 0"; ds.style.width = "100%";
+    types.sort((a, b) => sizes[a] - sizes[b]).forEach(t => ds.add(new Option(`${t}  –  ${(sizes[t] / 1048576).toFixed(0)}MB`, t)));
+    ds.value = types.includes("q4f16") && hasGPU && f16 === true ? "q4f16" : types.includes("q4") ? "q4" : types[0];
+    const w = el("div", "", "warn");
+    const upd = () => { const mb = sizes[ds.value] / 1048576;
+      w.textContent = mb > 700 && isIOS ? `約${mb.toFixed(0)}MB: iPadではメモリ不足で落ちる可能性があります(目安は〜500MB)` : ""; };
+    ds.onchange = upd; upd();
+    const go = el("button", "このモデルを読み込む"); go.type = "button"; go.style.width = "100%"; go.disabled = !types.length;
+    const back = el("button", "← 一覧に戻る", "sec"); back.type = "button"; back.style.cssText = "width:100%;margin-top:8px";
+    back.onclick = () => { hd.hidden = true; hl.hidden = false; };
+    go.onclick = () => {
+      const t = ds.value, custom = !OK.includes(t);
+      const i = addModel({id, dt: custom ? "fp32" : t, mf: custom ? "model_" + t : null, hf: true, label: `${id.split("/").pop()} ${t}`});
+      sel.value = String(i); sel.onchange(); hf.hidden = true; $("#load").click();
+    };
+    hd.append(...(types.length ? [ds, w] : []), go, back);
+  } catch (e) { hd.textContent = "取得に失敗しました: " + e.message; log("HF詳細取得失敗: " + e.message, "e"); }
+}
+
 let loading = false, hb = null, lastMsg = performance.now();
 $("#load").onclick = () => {
   if (loading) { log("すでに読み込み中です(無視)", "w"); return; }
-  loading = true; lastMsg = performance.now();
+  loading = true; lastMsg = performance.now(); $("#inp").disabled = $("#send").disabled = true;
   const ts = performance.now(); clearInterval(hb);
   hb = setInterval(() => log(`…経過 ${((performance.now() - ts) / 1000) | 0}秒(Worker最終応答 ${((performance.now() - lastMsg) / 1000) | 0}秒前)`, "t"), 5000);
   log("読み込み開始: " + sel.options[sel.selectedIndex].text + (sel.value === "__local__" ? " dtype=" + dsel.value : ""));
@@ -230,7 +329,7 @@ $("#load").onclick = () => {
   setStatus("読み込み中…(大きいモデルは時間がかかります)");
   const local = sel.value === "__local__";
   const M = local ? null : MODELS[+sel.value];
-  let dtype = local ? dsel.value : M.dt, mf = null;
+  let dtype = local ? dsel.value : M.dt, mf = local ? null : (M.mf || null);
   if (local && !OK.includes(dtype)) { mf = "model_" + dtype; }
   worker.postMessage({type:"load", ver: $("#ver").value, model: local ? "local" : M.id, device: hasGPU ? "webgpu" : "wasm", dtype, mf, files: local ? localFiles : null, opt: {verbose: $("#verbose").checked, lowmem: $("#lowmem").checked}});
 };
@@ -247,6 +346,7 @@ worker.onmessage = ({data:d}) => {
     $("#bar i").style.width = "100%";
     setStatus(`準備完了(${d.device === "webgpu" ? "WebGPU" : "WASM/CPU"})`);
     $("#inp").disabled = $("#send").disabled = false; $("#inp").focus();
+    $("#load").disabled = sel.disabled = dsel.disabled = false;
   }
   else if (d.type === "token") { if (!nTok++) log("最初のトークン " + (((performance.now() - tg) / 1000).toFixed(1)) + "秒"); cur.textContent += d.text; $("#log").scrollTop = 1e9; }
   else if (d.type === "done") { log(`生成完了 ${nTok}チャンク ${(((performance.now() - tg) / 1000)).toFixed(1)}秒`); history.push({role:"assistant", content: cur.textContent}); finish(); }
