@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ローカルAI">
 <title>ローカルAI</title>
@@ -10,13 +10,13 @@
 :root{--bg:#faf9f5;--fg:#29261b;--sub:#6b6a65;--card:#f0eee6;--line:#e3e0d3;--ac:#c96442;--inp:#fff;--ok:#5a9a5a}
 @media(prefers-color-scheme:dark){:root{--bg:#262624;--fg:#faf9f5;--sub:#a3a29a;--card:#30302e;--line:#3d3d3a;--ac:#d97757;--inp:#30302e}}
 *{box-sizing:border-box}[hidden]{display:none!important}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Hiragino Sans",-apple-system,sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html,body{margin:0;overflow:hidden;overscroll-behavior:none}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Hiragino Sans",-apple-system,sans-serif;position:fixed;top:0;left:0;right:0;height:var(--h,100dvh);overflow:hidden;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 button,select,textarea,input{font:inherit;color:inherit}
 button{border:0;border-radius:10px;padding:9px 16px;background:var(--ac);color:#fff;font-weight:600;cursor:pointer}
 button.sec{background:var(--card);color:var(--fg);border:1px solid var(--line)}button:disabled{opacity:.4}
 select,textarea,input[type=text],input:not([type]){width:100%;border:1px solid var(--line);border-radius:10px;background:var(--inp);padding:8px 12px}
-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px}
+header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px}
 #chip{max-width:60%;font:13px -apple-system,"Hiragino Sans",sans-serif;color:var(--sub);background:var(--card);border-radius:20px;padding:5px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 #chip::before{content:"●";color:var(--sub);margin-right:6px;font-size:10px}#chip.on::before{color:var(--ok)}
 .ib{padding:6px 10px;font-size:20px;background:none;color:var(--sub);border:0}
@@ -46,12 +46,12 @@ form{padding:6px 14px 12px}
 @keyframes bl{50%{opacity:.35}}
 .it.cur{border-color:var(--ac)}
 .tb{display:flex;align-items:center;justify-content:space-between;gap:8px}
-#msel{width:auto;min-width:0;max-width:100%;border:0;background:none;color:var(--sub);padding:4px 0;font:14px -apple-system,"Hiragino Sans",sans-serif}
+#msel{width:auto;min-width:0;max-width:100%;border:0;background:none;color:var(--sub);padding:4px 0;font:16px -apple-system,"Hiragino Sans",sans-serif}
 #pb{margin:0 16px 8px;padding:12px 16px;background:var(--card);border-radius:16px;font:14px -apple-system,"Hiragino Sans",sans-serif}#pb .bar{margin:8px 0}#perr{margin:0 16px 8px}
 #inp{resize:none;height:30px;max-height:150px;border:0;background:none;padding:6px 0;outline:none;font-family:-apple-system,"Hiragino Sans",sans-serif}
 #send{border-radius:50%;width:36px;height:36px;padding:0;font-size:17px;flex:none}
-#sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10;display:flex;align-items:flex-end;justify-content:center}
-.pane{background:var(--bg);width:min(720px,100%);max-height:92dvh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding:14px 18px calc(14px + env(safe-area-inset-bottom))}
+#sheet{position:fixed;top:0;left:0;right:0;height:var(--h,100dvh);background:rgba(0,0,0,.4);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.pane{background:var(--bg);width:min(720px,100%);max-height:calc(var(--h,100dvh)*.92);border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding:14px 18px calc(14px + env(safe-area-inset-bottom))}
 .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.ph b{font-size:20px;font-weight:500}
 .body{overflow:auto;-webkit-overflow-scrolling:touch;font-family:-apple-system,"Hiragino Sans",sans-serif}
 .body h3{font-size:13px;color:var(--sub);margin:20px 0 6px;font-weight:600}
@@ -61,6 +61,7 @@ form{padding:6px 14px 12px}
 #dbg{font:11px/1.4 ui-monospace,Menlo,monospace;background:var(--card);padding:8px;border-radius:10px;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-all}
 #dbg .e{color:#d6453a}#dbg .w{color:#c98a1a}
 .it{display:block;width:100%;text-align:left;background:var(--inp);color:var(--fg);border:1px solid var(--line);margin:6px 0;font-weight:500;word-break:break-all}.it small{display:block;color:var(--sub);font-weight:400;font-size:12px}
+#inp,#hfq,#msel,.pane textarea,.pane select{font-size:16px!important}
 .warn{color:#c98a1a;font-size:13px;margin:6px 0}
 </style>
 </head>
@@ -201,6 +202,18 @@ onmessage=async({data:d})=>{
 
 <script type="module">
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+// 画面の高さを実測して反映(回転・ツールバー・キーボード対策)
+const vv=window.visualViewport;
+function fit(){
+  const h=vv?vv.height:innerHeight;
+  document.documentElement.style.setProperty("--h",h+"px");
+  document.body.style.top=(vv?vv.offsetTop:0)+"px";
+  if(!vv||vv.offsetTop===0)scrollTo(0,0);
+}
+if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit)}
+addEventListener("resize",fit);
+addEventListener("orientationchange",()=>{fit();setTimeout(fit,150);setTimeout(fit,500)});
+fit();
 const DEF={sys:"あなたは親切な日本語アシスタントです。簡潔に答えてください。",temp:0.3,maxTok:512,mem:10,rp:1.05,topk:50,fs:16,ver:"4.3.0",low:false,verbose:false,auto:true,model:null};
 let S={...DEF};try{Object.assign(S,JSON.parse(localStorage.getItem("llm_s")||"{}"))}catch{}
 const save=()=>{try{localStorage.setItem("llm_s",JSON.stringify(S))}catch{}};
