@@ -39,8 +39,14 @@ header{display:flex;align-items:center;justify-content:space-between;gap:8px;pad
 .chipb{display:inline-block;margin:4px;padding:8px 16px;border-radius:20px;background:none;color:var(--fg);border:1px solid var(--line);font:500 14px -apple-system,"Hiragino Sans",sans-serif}
 form{padding:6px 14px 12px}
 .box{display:flex;flex-direction:column;gap:4px;background:var(--inp);border:1px solid var(--line);border-radius:22px;padding:12px 10px 8px 18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.l{display:flex;align-items:center;min-width:0;max-width:76%}
+#lamp{width:8px;height:8px;box-sizing:content-box;padding:6px;background:var(--line);background-clip:content-box;border-radius:50%;flex:none;cursor:pointer;transition:background .4s,box-shadow .4s}
+#lamp.on{background:var(--ok);background-clip:content-box;box-shadow:0 0 6px var(--ok)}
+#lamp.ld{background:#e0a030;background-clip:content-box;animation:bl 1s ease-in-out infinite}
+@keyframes bl{50%{opacity:.35}}
+.it.cur{border-color:var(--ac)}
 .tb{display:flex;align-items:center;justify-content:space-between;gap:8px}
-#msel{width:auto;max-width:68%;border:0;background:none;color:var(--sub);padding:4px 0;font:14px -apple-system,"Hiragino Sans",sans-serif}
+#msel{width:auto;min-width:0;max-width:100%;border:0;background:none;color:var(--sub);padding:4px 0;font:14px -apple-system,"Hiragino Sans",sans-serif}
 #pb{margin:0 16px 8px;padding:12px 16px;background:var(--card);border-radius:16px;font:14px -apple-system,"Hiragino Sans",sans-serif}#pb .bar{margin:8px 0}#perr{margin:0 16px 8px}
 #inp{resize:none;height:30px;max-height:150px;border:0;background:none;padding:6px 0;outline:none;font-family:-apple-system,"Hiragino Sans",sans-serif}
 #send{border-radius:50%;width:36px;height:36px;padding:0;font-size:17px;flex:none}
@@ -60,7 +66,7 @@ form{padding:6px 14px 12px}
 </head>
 <body>
 <header>
-  <button class="ib" id="newc" title="新しい会話">✎</button>
+  <div><button class="ib" id="hist" title="会話履歴">☰</button><button class="ib" id="newc" title="新しい会話">✎</button></div>
   <div id="chip" title="設定">未読み込み</div>
   <button class="ib" id="gear" title="設定">⚙︎</button>
 </header>
@@ -73,7 +79,7 @@ form{padding:6px 14px 12px}
     <div class="note">初回はダウンロードに数分かかります(Wi-Fi推奨)。<br>読み込みが終わると、メッセージを自動で送信します。</div>
     <div style="text-align:center;margin-top:8px"><button class="sec" id="cancel">キャンセル</button></div></div>
   <div id="perr" class="err" hidden></div>
-  <form id="f"><div class="box"><textarea id="inp" rows="1" placeholder="メッセージを送信"></textarea><div class="tb"><select id="msel" aria-label="モデル"></select><button id="send">↑</button></div></div></form>
+  <form id="f"><div class="box"><textarea id="inp" rows="1" placeholder="メッセージを送信"></textarea><div class="tb"><div class="l"><i id="lamp"></i><select id="msel" aria-label="モデル"></select></div><button id="send">↑</button></div></div></form>
 </section>
 
 <div id="sheet" hidden>
@@ -118,6 +124,10 @@ form{padding:6px 14px 12px}
   </div>
  </div>
 
+ <div class="pane" id="p-hist" hidden>
+  <div class="ph"><b>会話履歴</b><button class="sec close">閉じる</button></div>
+  <div class="body"><button id="newc2" style="width:100%;margin-bottom:8px">＋ 新しい会話</button><div id="hl"></div></div>
+ </div>
  <div class="pane" id="p-hf" hidden>
   <div class="ph"><b>Hugging Faceから探す</b><button class="sec close">閉じる</button></div>
   <div class="row" style="flex-wrap:nowrap"><input id="hfq" placeholder="モデル名で検索 / owner/name" autocomplete="off" autocapitalize="off" style="flex:1">
@@ -183,7 +193,8 @@ onmessage=async({data:d})=>{
       const g=d.g;
       await gen(d.messages,{max_new_tokens:g.max,do_sample:g.temp>0,temperature:g.temp||undefined,top_k:g.topk,repetition_penalty:g.rp,streamer,...(stopper?{stopping_criteria:stopper}:{})});
       postMessage({type:"done"});
-    }else if(d.type==="stop"&&stopper)stopper.interrupt();
+    }else if(d.type==="unload"){if(gen){try{await gen.dispose()}catch{}gen=null}postMessage({type:"unloaded"})}
+    else if(d.type==="stop"&&stopper)stopper.interrupt();
   }catch(e){postMessage({type:"error",message:String(e&&e.message||e)})}
 };
 </script>
@@ -193,8 +204,20 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const DEF={sys:"あなたは親切な日本語アシスタントです。簡潔に答えてください。",temp:0.3,maxTok:512,mem:10,rp:1.05,topk:50,fs:16,ver:"4.3.0",low:false,verbose:false,auto:true,model:null};
 let S={...DEF};try{Object.assign(S,JSON.parse(localStorage.getItem("llm_s")||"{}"))}catch{}
 const save=()=>{try{localStorage.setItem("llm_s",JSON.stringify(S))}catch{}};
-let H=[];try{H=JSON.parse(localStorage.getItem("llm_h")||"[]")}catch{}
-const saveH=()=>{try{localStorage.setItem("llm_h",JSON.stringify(H.slice(-60)))}catch{}};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let C={list:[],cur:null};try{C=JSON.parse(localStorage.getItem("llm_c")||"null")||C}catch{}
+if(!C.list.length){let old=[];try{old=JSON.parse(localStorage.getItem("llm_h")||"[]")}catch{}
+  if(old.length){const id=uid();C={list:[{id,title:(old.find(m=>m.role==="user")||{content:"会話"}).content.slice(0,30),t:Date.now(),msgs:old}],cur:id}}}
+function saveC(){for(let i=0;i<5;i++){try{localStorage.setItem("llm_c",JSON.stringify(C));return}catch{C.list.sort((a,b)=>b.t-a.t);C.list.pop()}}}
+let H=[];{const c=C.list.find(x=>x.id===C.cur);if(c)H=c.msgs.slice()}
+function saveH(){
+  if(!H.length)return;
+  let c=C.list.find(x=>x.id===C.cur);
+  if(!c){c={id:uid(),title:"",t:0,msgs:[]};C.list.unshift(c);C.cur=c.id}
+  c.msgs=H.slice(-200);c.t=Date.now();
+  if(!c.title)c.title=(H.find(m=>m.role==="user")||{content:"新しい会話"}).content.slice(0,30);
+  C.list.sort((a,b)=>b.t-a.t);C.list=C.list.slice(0,50);saveC();
+}
 
 // ---- ログ ----
 const dbg=$("#dbg"),t0=performance.now();
@@ -216,7 +239,7 @@ const P=[
  {id:"onnx-community/LFM2-1.2B-ONNX",dt:"q4",name:"高品質",desc:"より賢い。新しめのiPad・PC向け(約700MB)"},
 ];
 const mkey=m=>m?m.id+"|"+m.dt+"|"+(m.mf||""):"";
-let ML=[],loadedKey="",dev="",pendingText=null;
+let ML=[],loadedKey="",loadedName="",dev="",pendingText=null;
 function buildSel(){
   const ms=$("#msel"),c=S.model||P[0],ck=mkey(c);ms.textContent="";
   ML=[...P,...(S.custom||[])];let i=ML.findIndex(m=>mkey(m)===ck);
@@ -231,9 +254,15 @@ function updChip(){
   if(loading){ch.textContent=c.name+" ・読み込み中";ch.className=""}
   else if(ready&&mkey(c)===loadedKey){ch.textContent=c.name+(dev==="webgpu"?" ・高速":" ・標準");ch.className="on"}
   else{ch.textContent=c.name+" ・未読み込み";ch.className=""}
+  const lp=$("#lamp");
+  lp.className=loading?"ld":ready?"on":"";
+  lp.title=loading?"モデルを読み込み中":ready?"モデルがメモリに載っています: "+loadedName+"(タップで解放)":"モデルはメモリに載っていません";
   buildSel();
 }
 function addCustom(){S.custom=[S.model,...(S.custom||[]).filter(x=>mkey(x)!==mkey(S.model))].slice(0,5);save()}
+$("#lamp").onclick=()=>{
+  if(loading||busy||!ready)return;
+  if(confirm("モデルをメモリから解放しますか?\n次にメッセージを送ると、自動で読み込み直します。"))W.postMessage({type:"unload"})};
 $("#msel").onchange=e=>{
   const v=e.target.value;
   if(v==="srch"){buildSel();$("#openHF").click();return}
@@ -273,8 +302,9 @@ function onMsg({data:d}){
   else if(d.type==="stage"){stage=true;updProg()}
   else if(d.type==="fallback"){pg=null;stage=false;initStart=0;$("#ptxt").textContent="標準モードに切り替えています…"}
   else if(d.type==="ready"){clearInterval(hb);flag(false);loading=false;ready=true;log("準備完了 "+d.device);
-    loadedKey=mkey(S.model);dev=d.device;updChip();$("#pb").hidden=true;renderChat();
+    loadedKey=mkey(S.model);loadedName=S.model.name;dev=d.device;updChip();$("#pb").hidden=true;renderChat();
     if(pendingText){const t=pendingText;pendingText=null;send(t)}else $("#inp").focus()}
+  else if(d.type==="unloaded"){ready=false;loadedKey="";updChip();log("メモリから解放しました")}
   else if(d.type==="token"){cur.textContent+=d.text;$("#log").scrollTop=1e9}
   else if(d.type==="done"){H.push({role:"assistant",content:cur.textContent});saveH();endGen()}
   else if(d.type==="error"){clearInterval(hb);flag(false);log("エラー: "+d.message,"e");
@@ -310,7 +340,8 @@ $("#cancel").onclick=()=>{W.terminate();mk();clearInterval(hb);flag(false);loadi
 $("#f").onsubmit=e=>{e.preventDefault();if(busy)W.postMessage({type:"stop"});else send($("#inp").value)};
 $("#inp").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$("#f").requestSubmit()}};
 $("#inp").oninput=e=>{e.target.style.height="30px";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px"};
-$("#newc").onclick=()=>{if(busy)return;H=[];saveH();renderChat()};
+$("#newc").onclick=()=>{if(busy)return;H=[];C.cur=null;saveC();renderChat()};
+$("#newc2").onclick=()=>$("#newc").click()||closeSheet();
 
 // ---- 設定シート ----
 const pane=id=>{$("#sheet").hidden=false;$$(".pane").forEach(p=>p.hidden=p.id!==id)};
@@ -329,8 +360,25 @@ $$("[data-k]").forEach(el=>{
 });
 applyFs();
 $("#delc").onclick=async()=>{if(!confirm("ダウンロード済みのモデルをすべて削除します。次回は再ダウンロードが必要です。"))return;try{for(const k of await caches.keys())await caches.delete(k)}catch{}stor()};
-$("#delh").onclick=()=>{if(!confirm("会話をすべて削除します。"))return;H=[];saveH();renderChat()};
+$("#delh").onclick=()=>{if(!confirm("保存した会話をすべて削除します。"))return;H=[];C={list:[],cur:null};saveC();renderChat()};
 $("#rst").onclick=()=>{if(!confirm("設定を初期化します。"))return;try{localStorage.removeItem("llm_s")}catch{}location.reload()};
+
+// ---- 会話履歴 ----
+function renderHist(){
+  const l=$("#hl");l.textContent="";
+  const ls=[...C.list].sort((a,b)=>b.t-a.t);
+  if(!ls.length){const p=document.createElement("p");p.className="hint";p.textContent="まだ会話がありません";l.append(p)}
+  for(const c of ls){
+    const row=document.createElement("div");row.style.cssText="display:flex;gap:6px;align-items:stretch";
+    const b=document.createElement("button");b.className="it"+(c.id===C.cur?" cur":"");b.style.flex="1";b.textContent=c.title||"新しい会話";
+    const sm=document.createElement("small");sm.textContent=new Date(c.t).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})+" ・"+c.msgs.length+"件";b.append(sm);
+    b.onclick=()=>{if(busy)return;C.cur=c.id;H=c.msgs.slice();saveC();renderChat();closeSheet()};
+    const d=document.createElement("button");d.className="sec";d.textContent="🗑";d.style.margin="6px 0";
+    d.onclick=()=>{if(busy||!confirm("この会話を削除しますか?"))return;C.list=C.list.filter(x=>x.id!==c.id);if(C.cur===c.id){C.cur=null;H=[];renderChat()}saveC();renderHist()};
+    row.append(b,d);l.append(row);
+  }
+}
+$("#hist").onclick=()=>{renderHist();pane("p-hist")};
 
 // ---- ローカルファイル ----
 const DT={quantized:"q8"};
